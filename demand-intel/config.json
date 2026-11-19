@@ -1,0 +1,6 @@
+{
+  "google_maps_api_key": "",
+  "collection_interval_hours": 24,
+  "backfill_weeks": 12,
+  "db_path": "data/demand.db"
+}

@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn>=0.29
+apscheduler>=3.10
+requests>=2.31
+pytrends>=4.9 ; python_version < "3.13"

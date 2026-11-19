@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demand Intelligence Platform</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#111823; --panel-2:#151f2e; --border:#23304a;
+    --accent:#00e5a0; --accent-glow:rgba(0,229,160,.35); --cyan:#38bdf8;
+    --amber:#fbbf24; --text:#e2e8f0; --muted:#7c8ba1; --red:#f43f5e; --green:#22c55e;
+    --mono:"Cascadia Code",Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;
+    background-image:radial-gradient(circle at 15% 10%,rgba(0,229,160,.06),transparent 40%),
+                     radial-gradient(circle at 85% 60%,rgba(56,189,248,.05),transparent 40%);}
+  .wrap{max-width:1220px;margin:0 auto;padding:24px 20px 60px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 20px;
+    border-bottom:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--cyan));
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;color:#04121a;
+    box-shadow:0 0 18px var(--accent-glow);}
+  .brand h1{font-size:17px;} .brand h1 span{color:var(--accent);}
+  .brand .sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
+  .status-strip{display:flex;gap:8px;flex-wrap:wrap;}
+  .adp{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);}
+  .adp.live{color:var(--green);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07);}
+  .adp.mock{color:var(--amber);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07);}
+  .offline{display:none;margin-bottom:18px;padding:12px 16px;border-radius:10px;border:1px solid rgba(244,63,94,.5);
+    background:rgba(244,63,94,.08);color:#fecdd3;font-family:var(--mono);font-size:12px;}
+  section{margin-bottom:26px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  .sec-head .num{font-family:var(--mono);color:var(--accent);font-size:12px;
+    border:1px solid rgba(0,229,160,.35);border-radius:4px;padding:2px 7px;}
+  .sec-head h2{font-size:15px;letter-spacing:.6px;text-transform:uppercase;}
+  .sec-head .desc{color:var(--muted);font-size:12px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .field label{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+  .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border);
+    border-radius:8px;padding:11px 12px;font-size:14px;font-family:var(--mono);outline:none;cursor:pointer;}
+  select:focus{border-color:var(--accent);}
+  .btn{background:linear-gradient(135deg,var(--accent),#0aa877);color:#04121a;border:none;
+    border-radius:8px;padding:11px 20px;font-weight:700;font-size:13px;cursor:pointer;
+    box-shadow:0 0 14px var(--accent-glow);}
+  .btn:hover{filter:brightness(1.1);}
+  .btn:disabled{opacity:.5;cursor:wait;}
+  .target-summary{margin-top:14px;padding:12px 16px;border-radius:8px;background:var(--panel-2);
+    border:1px dashed var(--border);font-family:var(--mono);font-size:13px;display:flex;gap:8px;
+    align-items:center;flex-wrap:wrap;}
+  .target-summary b{color:var(--accent);} .ok{color:var(--cyan);}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+  .metric{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;}
+  .metric::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
+  .metric .k{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  .metric .v{font-family:var(--mono);font-size:22px;font-weight:700;margin-top:6px;}
+  .metric .delta{font-family:var(--mono);font-size:11px;margin-top:4px;color:var(--muted);}
+  .dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;}
+  .panel h3{font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;
+    letter-spacing:1px;margin-bottom:12px;}
+  .map-svg{width:100%;height:auto;display:block;}
+  .state{cursor:pointer;stroke:#0a0e14;stroke-width:2;transition:opacity .12s;}
+  .state:hover{opacity:.85;}
+  .state.target rect{stroke:#fff;stroke-width:3;}
+  .state-label{font-family:var(--mono);font-size:9px;fill:#fff;text-anchor:middle;pointer-events:none;
+    paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:2px;font-weight:700;}
+  .state-score{font-family:var(--mono);font-size:12px;fill:#fff;text-anchor:middle;pointer-events:none;
+    paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:2px;font-weight:700;}
+  .region-tag{font-family:var(--mono);font-size:9px;fill:var(--muted);text-anchor:middle;}
+  .legend{display:flex;align-items:center;gap:8px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .legend .bar{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#f43f5e,#f59e0b,#22c55e);}
+  .map-cap{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;}
+  .drill{margin-top:14px;border-top:1px solid var(--border);padding-top:14px;}
+  .drill-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-family:var(--mono);font-size:12px;}
+  .drill-row .lbl{width:170px;}
+  .drill-row .meter{flex:1;height:8px;border-radius:4px;background:#1d2839;overflow:hidden;}
+  .drill-row .meter i{display:block;height:100%;}
+  .drill-row .num{width:34px;text-align:right;}
+  .drill-row .miss{color:var(--amber);font-size:11px;}
+  .weight-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-family:var(--mono);font-size:12px;}
+  .weight-row .lbl{width:170px;}
+  .weight-row input[type=range]{flex:1;accent-color:var(--accent);}
+  .weight-row .pct{width:52px;text-align:right;color:var(--cyan);}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .preset{background:var(--panel-2);color:var(--cyan);border:1px solid var(--border);border-radius:6px;
+    padding:6px 12px;font-family:var(--mono);font-size:11px;cursor:pointer;}
+  .preset.active{border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px var(--accent-glow);}
+  .cmp-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+  .cmp-table th{text-align:left;color:var(--muted);font-weight:500;padding:6px 8px;
+    border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:1px;}
+  .cmp-table td{padding:7px 8px;border-bottom:1px solid rgba(35,48,74,.5);}
+  .cmp-table tr.current td{color:var(--accent);font-weight:700;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .conf{font-size:9px;padding:2px 6px;border-radius:4px;letter-spacing:.5px;}
+  .conf.high{background:rgba(34,197,94,.15);color:var(--green);}
+  .conf.med{background:rgba(251,191,36,.15);color:var(--amber);}
+  .conf.low{background:rgba(244,63,94,.15);color:var(--red);}
+  .btn-ghost{background:var(--panel-2);color:var(--cyan);border:1px solid var(--border);border-radius:8px;
+    padding:10px 18px;font-family:var(--mono);font-size:12px;cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--cyan);}
+  .hud-body{margin-top:14px;} .hud-body.hidden{display:none;}
+  .hud-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .hud-card{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .hud-card h4{font-family:var(--mono);font-size:11px;color:var(--cyan);text-transform:uppercase;
+    letter-spacing:1px;margin-bottom:8px;}
+  .hud-card p{color:#c3cede;line-height:1.6;font-size:13px;margin-bottom:8px;}
+  .hud-card ul{list-style:none;}
+  .hud-card li{padding:5px 0 5px 18px;position:relative;color:#c3cede;font-size:13px;line-height:1.5;}
+  .hud-card li::before{content:"▸";position:absolute;left:0;color:var(--accent);}
+  .hud-note{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .fresh{font-family:var(--mono);font-size:11px;color:var(--muted);}
+  footer{text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;padding-top:10px;}
+  @media(max-width:900px){.setup-grid,.dash-grid,.hud-grid{grid-template-columns:1fr;} .metrics{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">DI</div>
+      <div>
+        <h1>Demand Intelligence <span>Platform</span></h1>
+        <div class="sub">DATA COLLECTION → NORMALIZATION → SCORING → SERVE</div>
+      </div>
+    </div>
+    <div class="status-strip" id="statusStrip"><span class="adp mock">connecting…</span></div>
+  </header>
+
+  <div class="offline" id="offline">
+    ⚠ BACKEND OFFLINE — start it with: cd demand-intel && python run.py — this page reads live scores from the API.
+  </div>
+
+  <!-- 1. SYSTEM SETUP -->
+  <section>
+    <div class="sec-head"><span class="num">01</span><h2>System Setup</h2>
+      <span class="desc">Pick a product; the backend scores every state from collected signals</span></div>
+    <div class="panel">
+      <div class="setup-grid">
+        <div class="field"><label for="productSel">Product</label><select id="productSel"></select></div>
+        <div class="field"><label for="locSel">Target Location (or click the map)</label><select id="locSel"></select></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:12px;align-items:center;">
+        <button class="btn" id="setTargetBtn">Set Target Market</button>
+        <button class="btn-ghost" id="collectBtn">⟳ Collect Now</button>
+        <span class="fresh" id="freshNote"></span>
+      </div>
+      <div class="target-summary" id="targetSummary">Loading…</div>
+    </div>
+  </section>
+
+  <!-- 2. DASHBOARD -->
+  <section>
+    <div class="sec-head"><span class="num">02</span><h2>Dashboard</h2>
+      <span class="desc">Composite demand score across 16 Malaysian states &amp; territories</span></div>
+    <div class="metrics" id="metrics"></div>
+    <div class="dash-grid">
+      <div class="panel">
+        <h3>Demand Map — Schematic Malaysia, Red (Weak) → Green (Strong)</h3>
+        <svg class="map-svg" id="mapSvg" viewBox="0 0 780 430"></svg>
+        <div class="legend"><span>WEAK</span><div class="bar"></div><span>STRONG</span></div>
+        <div class="map-cap" id="mapCap"></div>
+        <div class="drill" id="drill"></div>
+      </div>
+      <div>
+        <div class="panel" style="margin-bottom:14px;">
+          <h3>Factor Weights — Drag to Re-score</h3>
+          <div class="preset-row" id="presetRow"></div>
+          <div id="weightSliders"></div>
+          <div class="map-cap">Weights re-normalize to 100%. The backend supplies per-factor scores; sliders re-combine them locally for instant what-if analysis.</div>
+        </div>
+        <div class="panel">
+          <h3>Location Ranking — Composite Score</h3>
+          <table class="cmp-table">
+            <thead><tr><th>Location</th><th>Score</th><th>Confidence</th><th>Level</th></tr></thead>
+            <tbody id="cmpBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. ANALYSIS HUD -->
+  <section>
+    <div class="sec-head"><span class="num">03</span><h2>Analysis HUD</h2>
+      <span class="desc">Explainable scoring — provenance and data gaps</span></div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="btn-ghost" id="hudToggle">▸ OPEN ANALYSIS</button>
+        <span class="hud-note" id="hudState">Extra analysis is currently collapsed.</span>
+      </div>
+      <div class="hud-body hidden" id="hudBody">
+        <div class="hud-grid">
+          <div class="hud-card"><h4>AI-Style Feedback</h4><p id="hudFeedback"></p><p id="hudFeedback2"></p></div>
+          <div class="hud-card"><h4>Signal Notes</h4><ul id="hudNotes"></ul></div>
+        </div>
+        <div class="hud-card" style="margin-top:14px;"><h4>Quick Observations</h4><ul id="hudObs"></ul></div>
+        <div class="hud-note" id="hudProvenance"></div>
+      </div>
+    </div>
+  </section>
+  <footer>Demand Intelligence Platform · scores computed by the local backend from collected readings</footer>
+</div>
+
+<script>
+/* ============ schematic map geometry (same as demo) ============ */
+const MAP_POS = {
+  pls:{x:20,y:30,w:70,h:36}, kd:{x:20,y:74,w:95,h:52}, png:{x:123,y:34,w:62,h:40},
+  ktn:{x:170,y:20,w:80,h:44}, tgn:{x:220,y:72,w:80,h:46}, prk:{x:60,y:134,w:95,h:56},
+  phg:{x:165,y:126,w:100,h:66}, sgr:{x:50,y:198,w:90,h:50}, kl:{x:148,y:200,w:52,h:34},
+  pgj:{x:150,y:242,w:52,h:30}, nsn:{x:80,y:256,w:78,h:44}, mlk:{x:105,y:308,w:70,h:36},
+  jhr:{x:150,y:352,w:100,h:56}, swk:{x:330,y:110,w:200,h:130}, lbn:{x:600,y:150,w:56,h:32},
+  sbh:{x:610,y:60,w:140,h:82}
+};
+
+const state = { productId:null, stateId:"kl", meta:null, scores:null, weights:null };
+const $ = id => document.getElementById(id);
+
+function scoreColor(score){
+  const stops=[[244,63,94],[245,158,11],[34,197,94]];
+  const t=Math.max(0,Math.min(1,(score-35)/60))*(stops.length-1);
+  const i=Math.floor(t),f=t-i;
+  const a=stops[i],b=stops[Math.min(i+1,stops.length-1)];
+  return `rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;
+}
+function confBadge(conf){
+  const lvl={HIGH:"high",MED:"med",LOW:"low"}[conf]||"low";
+  return `<span class="conf ${lvl}">${conf}</span>`;
+}
+
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  if(!r.ok) throw new Error("API " + r.status);
+  return r.json();
+}
+
+/* ============ boot ============ */
+async function boot(){
+  try{
+    const [meta, status] = await Promise.all([api("/api/meta"), api("/api/status")]);
+    $("offline").style.display = "none";
+    state.meta = meta;
+    renderStatus(status);
+    // populate selectors
+    $("productSel").innerHTML = meta.products.map(p =>
+      `<option value="${p.id}">${p.name} — ${meta.categories[p.cat].label}</option>`).join("");
+    $("locSel").innerHTML = meta.states.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    state.productId = meta.products[0].id;
+    state.stateId = "kl";
+    $("productSel").value = state.productId;
+    $("locSel").value = state.stateId;
+    buildPresets();
+    buildSliders();
+    await loadScores();
+  }catch(e){
+    $("offline").style.display = "block";
+    $("targetSummary").textContent = "Backend unreachable — start it with: cd demand-intel && python run.py";
+  }
+}
+
+function renderStatus(status){
+  $("statusStrip").innerHTML = status.adapters.map(a =>
+    `<span class="adp ${a.live?'live':'mock'}" title="${a.source}${a.note?' — '+a.note:''}">${a.live?'● LIVE':'○ MOCK'} · ${a.factor}</span>`
+  ).join("") + `<span class="adp" title="raw readings stored in SQLite">DB: ${status.readings.real} real / ${status.readings.mock} sample</span>`;
+}
+
+/* ============ scores from backend ============ */
+async function loadScores(){
+  $("targetSummary").textContent = "Scoring…";
+  const data = await api("/api/scores?product=" + state.productId);
+  state.scores = data;
+  state.weights = {...data.weights};
+  syncSliderValues();
+  render();
+  // trend freshness note
+  const metas = Object.values(data.factor_meta||{});
+  if(metas.length){
+    const wk = metas[0].week;
+    $("freshNote").textContent = `data week: ${wk}` + (metas.some(m=>m.mock) ? " · some signals are sample (○ MOCK)" : " · all signals live");
+  }
+}
+
+/* ============ weight sliders (local re-combination) ============ */
+const FACTOR_NAMES = { search:"Search Interest", buying:"Buying Power",
+                       saturation:"Market Saturation", competition:"Competitive Pressure" };
+function buildSliders(){
+  $("weightSliders").innerHTML = Object.keys(FACTOR_NAMES).map(f => `
+    <div class="weight-row">
+      <span class="lbl">${FACTOR_NAMES[f]}</span>
+      <input type="range" min="0" max="100" value="25" data-f="${f}">
+      <span class="pct" id="pct-${f}"></span>
+    </div>`).join("");
+  $("weightSliders").querySelectorAll("input").forEach(inp =>
+    inp.addEventListener("input", () => {
+      state.weights[inp.dataset.f] = +inp.value;
+      clearPresetActive();
+      render();
+    }));
+}
+function syncSliderValues(){
+  $("weightSliders").querySelectorAll("input").forEach(inp => inp.value = state.weights[inp.dataset.f]);
+}
+function buildPresets(){
+  $("presetRow").innerHTML = Object.entries(state.meta.categories).map(([k,c]) =>
+    `<button class="preset" data-cat="${k}">${c.label}</button>`).join("");
+  $("presetRow").querySelectorAll(".preset").forEach(b => b.addEventListener("click", () => {
+    state.weights = {...state.meta.categories[b.dataset.cat].weights};
+    syncSliderValues(); markPreset(b.dataset.cat); render();
+  }));
+  markPreset();
+}
+function clearPresetActive(){ $("presetRow").querySelectorAll(".preset").forEach(b=>b.classList.remove("active")); }
+function markPreset(cat){
+  clearPresetActive();
+  const prod = state.meta.products.find(p=>p.id===state.productId);
+  const btn = $("presetRow").querySelector(`.preset[data-cat="${cat||prod.cat}"]`);
+  if(btn) btn.classList.add("active");
+}
+
+/* ============ render ============ */
+function render(){
+  const d = state.scores;
+  const prod = d.product;
+  const wTotal = Object.values(state.weights).reduce((a,b)=>a+b,0) || 1;
+
+  // re-combine backend factor scores with current weights
+  const rows = d.scores.map(s => {
+    let acc=0, cov=0, coveredW=0;
+    Object.keys(FACTOR_NAMES).forEach(f=>{
+      const b = s.breakdown[f];
+      if(b && b.score!==null){ acc += b.score*state.weights[f]; coveredW += state.weights[f]; cov++; }
+    });
+    return { ...s, score: coveredW ? Math.round(acc/coveredW*10)/10 : null,
+             coverage: coveredW/wTotal, conf: (coveredW/wTotal)>=0.99?"HIGH":(coveredW/wTotal)>=0.75?"MED":"LOW" };
+  }).sort((a,b)=>(b.score??-1)-(a.score??-1));
+
+  const me = rows.find(r=>r.state_id===state.stateId);
+  const stName = state.meta.states.find(s=>s.id===state.stateId).name;
+  const best = rows[0], worst = rows[rows.length-1];
+  const rank = rows.findIndex(r=>r.state_id===state.stateId)+1;
+
+  $("targetSummary").innerHTML =
+    `TARGET ► <b>${prod.name}</b> in <b>${stName}</b> &nbsp;·&nbsp; Composite: <b class="ok">${me.score??'—'}/100</b>` +
+    ` &nbsp;·&nbsp; Rank: <b class="ok">#${rank}/16</b> &nbsp;·&nbsp; Confidence: ${confBadge(me.conf)}`;
+
+  const hiCov = rows.filter(r=>r.coverage>=0.75).length;
+  $("metrics").innerHTML = [
+    ["Composite Score", (me.score??"—")+" / 100", "percentile composite"],
+    ["Location Rank", "#"+rank+" / 16", "of scored states"],
+    ["Best Market", (best.score??"—")+" · "+best.state, "top of set"],
+    ["Confident States", hiCov+" / 16", "≥75% coverage"]
+  ].map(([k,v,n])=>`<div class="metric"><div class="k">${k}</div><div class="v">${v}</div><div class="delta">${n}</div></div>`).join("");
+
+  // map
+  const ns="http://www.w3.org/2000/svg";
+  const svg=$("mapSvg"); svg.innerHTML="";
+  const tag=(x,y,txt)=>{const t=document.createElementNS(ns,"text");t.setAttribute("x",x);t.setAttribute("y",y);
+    t.setAttribute("class","region-tag");t.textContent=txt;svg.appendChild(t);};
+  tag(160,425,"PENINSULAR MALAYSIA (SCHEMATIC)"); tag(500,90,"EAST MALAYSIA (SCHEMATIC)");
+  state.meta.states.forEach(s=>{
+    const r=rows.find(x=>x.state_id===s.id);
+    const pos=MAP_POS[s.id];
+    const g=document.createElementNS(ns,"g");
+    g.setAttribute("class","state"+(s.id===state.stateId?" target":""));
+    g.setAttribute("data-loc",s.id);
+    const rect=document.createElementNS(ns,"rect");
+    rect.setAttribute("x",pos.x);rect.setAttribute("y",pos.y);
+    rect.setAttribute("width",pos.w);rect.setAttribute("height",pos.h);
+    rect.setAttribute("rx",7);
+    rect.setAttribute("fill", r.score===null ? "#31415c" : scoreColor(r.score));
+    rect.setAttribute("opacity", s.id===state.stateId?1:.85);
+    const t1=document.createElementNS(ns,"text");
+    t1.setAttribute("x",pos.x+pos.w/2);t1.setAttribute("y",pos.y+pos.h/2-3);
+    t1.setAttribute("class","state-label");
+    t1.textContent=s.name.length>14?s.name.slice(0,13)+"…":s.name;
+    const t2=document.createElementNS(ns,"text");
+    t2.setAttribute("x",pos.x+pos.w/2);t2.setAttribute("y",pos.y+pos.h/2+12);
+    t2.setAttribute("class","state-score");
+    t2.textContent=(r.score===null?"—":r.score)+(r.conf==="LOW"?"*":r.conf==="MED"?"˙":"");
+    g.appendChild(rect);g.appendChild(t1);g.appendChild(t2);
+    g.addEventListener("click",()=>{ state.stateId=s.id; $("locSel").value=s.id; render(); });
+    svg.appendChild(g);
+  });
+  $("mapCap").textContent =
+    `Backend-computed composite for "${prod.name}" — red = weak, green = strong. * = LOW, ˙ = MED data confidence. Click any state.`;
+
+  // drill-down
+  $("drill").innerHTML =
+    `<h3 style="margin-bottom:10px;">Factor Breakdown — ${stName} (click map to change)</h3>` +
+    Object.keys(FACTOR_NAMES).map(f=>{
+      const b = me.breakdown[f];
+      const pct = Math.round(state.weights[f]/wTotal*100);
+      if(!b || b.score===null)
+        return `<div class="drill-row"><span class="lbl">${FACTOR_NAMES[f]}</span><span class="miss">no data collected — excluded (weight ${pct}%)</span></div>`;
+      return `<div class="drill-row"><span class="lbl">${FACTOR_NAMES[f]}</span>
+        <div class="meter"><i style="width:${b.score}%;background:${scoreColor(b.score)}"></i></div>
+        <span class="num">${Math.round(b.score)}</span><span style="color:var(--muted);font-size:10px;">w ${pct}%</span></div>`;
+    }).join("");
+
+  // ranking table
+  $("cmpBody").innerHTML = rows.map(r=>
+    `<tr class="${r.state_id===state.stateId?'current':''}">
+      <td><span class="dot" style="background:${r.score===null?'#31415c':scoreColor(r.score)}"></span>${r.state}${r.state_id===state.stateId?" ◉":""}</td>
+      <td>${r.score===null?"—":r.score}</td>
+      <td>${confBadge(r.conf)}</td>
+      <td><div class="meter" style="min-width:60px;"><i style="width:${r.score??0}%;background:${r.score===null?'#31415c':scoreColor(r.score)}"></i></div></td>
+    </tr>`).join("");
+
+  // weight percentages
+  Object.keys(FACTOR_NAMES).forEach(f=>{
+    const el=$("pct-"+f); if(el) el.textContent=Math.round(state.weights[f]/wTotal*100)+"%";
+  });
+
+  // HUD
+  const domFactor = Object.keys(FACTOR_NAMES)
+    .filter(f=>me.breakdown[f]&&me.breakdown[f].score!==null)
+    .sort((a,b)=>me.breakdown[b].score-me.breakdown[a].score)[0];
+  $("hudFeedback").textContent =
+    `Backend read: "${prod.name}" scores ${me.score??"—"}/100 in ${stName}, ranked #${rank} of 16. ` +
+    `${best.state} leads (${best.score}/100), ${worst.state} trails (${worst.score}/100).` +
+    (domFactor ? ` Dominant factor here: ${FACTOR_NAMES[domFactor]} at ${Math.round(me.breakdown[domFactor].score)}/100 (percentile across states).` : "");
+  $("hudFeedback2").textContent =
+    me.conf==="HIGH"
+      ? `All four factors have collected data, so this composite is reasonably reliable. Each factor score is a percentile: it ranks the state against the other 15, which keeps different data sources comparable.`
+      : `Coverage is ${Math.round(me.coverage*100)}% — missing factors were excluded and remaining weights re-normalized, not zeroed. In production this is where the platform flags "collect more data" instead of trusting the number.`;
+  $("hudNotes").innerHTML = [
+    `Search Interest comes from Google Trends per-state interest (or sample fallback — check the LIVE/MOCK strip).`,
+    `Buying Power comes from official DOSM median household income by state (real, static snapshot).`,
+    `Saturation &amp; Competitive Pressure come from business-density signals (Google Places when a key is configured).`,
+    `Factor scores are percentiles across the 16 states — relative, not absolute market size.`,
+    `Every raw reading is stored in SQLite with source, week, and mock/live flag (audit trail).`
+  ].map(t=>`<li>${t}</li>`).join("");
+  $("hudObs").innerHTML = [
+    `Strongest market in this run: <b>${best.state}</b> (${best.score}/100).`,
+    `Weakest: <b>${worst.state}</b> (${worst.score}/100).`,
+    `${16-hiCov} state(s) below 75% coverage — treat their ranks with caution.`,
+    `Press "⟳ Collect Now" to trigger a fresh collection run and watch confidence/freshness update.`
+  ].map(t=>`<li>${t}</li>`).join("");
+  const fm = Object.entries(d.factor_meta||{});
+  $("hudProvenance").innerHTML = fm.length
+    ? "Provenance: " + fm.map(([f,m]) =>
+        `${FACTOR_NAMES[f]} — week ${m.week}, ${m.mock?"SAMPLE":"live"}, collected ${m.collected_at}`).join(" · ")
+    : "";
+}
+
+/* ============ actions ============ */
+$("setTargetBtn").addEventListener("click", async () => {
+  state.productId = $("productSel").value;
+  state.stateId = $("locSel").value;
+  await loadScores();
+});
+$("productSel").addEventListener("change", async () => {
+  state.productId = $("productSel").value;
+  await loadScores();
+});
+$("locSel").addEventListener("change", () => { state.stateId = $("locSel").value; render(); });
+
+$("collectBtn").addEventListener("click", async () => {
+  const btn = $("collectBtn");
+  btn.disabled = true; btn.textContent = "⟳ Collecting…";
+  try{
+    await api("/api/collect", { method:"POST", headers:{"Content-Type":"application/json"},
+                                body: JSON.stringify({weeks:1}) });
+    const status = await api("/api/status");
+    renderStatus(status);
+    await loadScores();
+    $("freshNote").textContent = "collection run completed just now";
+  }catch(e){
+    $("freshNote").textContent = "collection failed — is the backend running?";
+  }
+  btn.disabled = false; btn.textContent = "⟳ Collect Now";
+});
+
+$("hudToggle").addEventListener("click", () => {
+  const open = $("hudBody").classList.toggle("hidden") === false;
+  $("hudToggle").textContent = open ? "▾ CLOSE ANALYSIS" : "▸ OPEN ANALYSIS";
+  $("hudState").textContent = open ? "Extra analysis is expanded below." : "Extra analysis is currently collapsed.";
+});
+
+boot();
+</script>
+</body>
+</html>
